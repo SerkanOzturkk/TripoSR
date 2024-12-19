@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Image Reconstruction</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/js/loaders/OBJLoader.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>2D Görselden 3D Model Üret</h1>
+      <form
+        id="upload-form"
+        action="/upload"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <div id="drop-area" class="drop-area">
+          <p>Görselinizi buraya sürükleyip bırakın veya tıklayın.</p>
+          <input type="file" name="file" id="file-upload" hidden />
+        </div>
+        <button type="submit" class="submit-btn">
+          Yükle ve 3D Modeli Görüntüle
+        </button>
+      </form>
+
+      {% if filename %}
+      <h3>Yüklenen Görselin 3D Modeli:</h3>
+      <div id="model-viewer" class="model-viewer"></div>
+      <a href="{{ url_for('download_file', filename=filename) }}">
+        <button class="download-btn">Modeli İndir</button>
+      </a>
+      {% endif %}
+
+      <h3>Yüklenen Görsel:</h3>
+      <img
+        src="{{ uploaded_image }}"
+        alt="Yüklenen Görsel"
+        class="uploaded-image"
+      />
+    </div>
+
+    <script>
+      // Sürükle-bırak alanı
+      const dropArea = document.getElementById("drop-area");
+      const fileInput = document.getElementById("file-upload");
+
+      dropArea.addEventListener("click", () => fileInput.click());
+      dropArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropArea.classList.add("dragover");
+      });
+      dropArea.addEventListener("dragleave", () => dropArea.classList.remove("dragover"));
+      dropArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropArea.classList.remove("dragover");
+        fileInput.files = e.dataTransfer.files;
+        previewImage(fileInput.files[0]);
+      });
+
+      // Görselin ekranda önizlemesi
+      function previewImage(file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const imageElement = document.createElement('img');
+          imageElement.src = event.target.result;
+          imageElement.alt = "Yüklenen Görsel";
+          imageElement.classList.add("uploaded-image");
+          document.querySelector(".container").appendChild(imageElement);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Three.js ile 3D Model Yükleme
+      {% if filename %}
+      const viewer = document.getElementById("model-viewer");
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(400, 400);
+      viewer.appendChild(renderer.domElement);
+
+      const loader = new THREE.OBJLoader();
+      loader.load("/static/0/mesh.obj", (object) => {
+        scene.add(object);
+        object.position.set(0, -0.5, 0);
+      });
+
+      camera.position.z = 2;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
+      {% endif %}
+    </script>
+  </body>
+</html>
